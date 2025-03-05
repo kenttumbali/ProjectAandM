@@ -1,0 +1,102 @@
+import { useState, useEffect } from "react";
+import { initializeApp } from "firebase/app";
+import { getFirestore, collection, addDoc, updateDoc, doc, onSnapshot } from "firebase/firestore";
+import { Button } from "@/components/ui/button";
+
+// Firebase configuration
+const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_AUTH_DOMAIN",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_STORAGE_BUCKET",
+    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+    appId: "YOUR_APP_ID"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+export default function QuestionRanking() {
+    const [questions, setQuestions] = useState([]);
+    const [newQuestion, setNewQuestion] = useState("");
+    const [userName, setUserName] = useState("");
+
+    useEffect(() => {
+        const unsubscribe = onSnapshot(collection(db, "questions"), (snapshot) => {
+            const questionList = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+            questionList.sort((a, b) => b.votes - a.votes); // Sort by votes descending
+            setQuestions(questionList);
+        });
+        return () => unsubscribe();
+    }, []);
+
+    const addQuestion = async () => {
+        if (newQuestion.trim() === "" || userName.trim() === "") return;
+        await addDoc(collection(db, "questions"), { text: newQuestion, votes: 0, author: userName });
+        setNewQuestion("");
+    };
+
+    const voteQuestion = async (id, votes) => {
+        await updateDoc(doc(db, "questions", id), { votes: votes + 1 });
+    };
+
+    return (
+        <div className="p-6 max-w-lg mx-auto">
+            <h1 className="text-xl font-bold mb-4">Team Question Ranking</h1>
+            <div className="mb-4">
+                <input
+                    type="text"
+                    className="border p-2 w-full rounded mb-2"
+                    placeholder="Enter your name"
+                    value={userName}
+                    onChange={(e) => setUserName(e.target.value)}
+                />
+            </div>
+            <div className="flex gap-2 mb-4">
+                <input
+                    type="text"
+                    className="border p-2 w-full rounded"
+                    placeholder="Enter a question"
+                    value={newQuestion}
+                    onChange={(e) => setNewQuestion(e.target.value)}
+                />
+                <Button onClick={addQuestion}>Add</Button>
+            </div>
+            <ul className="space-y-2">
+                {questions.map(({ id, text, votes, author }) => (
+                    <li key={id} className="flex justify-between p-3 border rounded">
+                        <div>
+                            <span className="block font-semibold">{text}</span>
+                            <span className="text-sm text-gray-500">Asked by: {author}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm">{votes}</span>
+                            <Button onClick={() => voteQuestion(id, votes)}>👍</Button>
+                        </div>
+                    </li>
+                ))}
+            </ul>
+        </div>
+    );
+}
+
+<script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyBBHTA3UoOrOvOdXrBPA72gusve5GQA6lI",
+    authDomain: "question-ranking-7e20e.firebaseapp.com",
+    projectId: "question-ranking-7e20e",
+    storageBucket: "question-ranking-7e20e.firebasestorage.app",
+    messagingSenderId: "316049202111",
+    appId: "1:316049202111:web:a4b57686d6e450ea63df0a"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+</script>
